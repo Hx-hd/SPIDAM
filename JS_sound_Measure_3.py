@@ -10,7 +10,6 @@ import librosa.display
 # A global flag to track if plots are visible
 plots_Visible = False
 
-
 # GUI window
 root = tk.Tk()
 root.title("Acoustic Modeling Module.")
@@ -28,6 +27,8 @@ rt60_low = float('nan')  # Use NaN to indicate uninitialized values
 rt60_mid = float('nan')
 rt60_high = float('nan')
 
+current_plot = None
+
 # Convert any audio file to .wav
 def convert_to_wav(file_path):
     audio = AudioSegment.from_file(file_path)
@@ -42,8 +43,9 @@ def display_waveform(audio, sr):
     plt.title("Waveform")
     plt.xlabel("Time (s)")
     plt.ylabel("Amplitude")
-    plt.show()
-
+    plt.grid(True)
+    plt.show(block=False)  # Non-blocking mode
+    plt.pause(0.001)
 
 # Function to process audio file and calculate RT60 for low, mid, and high frequency ranges
 def process_Audio(file_path):
@@ -95,6 +97,15 @@ def compute_rt60(audio_signal, sr, low_freq, high_freq):
 def update_Plots(rt60_low, rt60_mid, rt60_high):
     global axes, current_plot_type
 
+
+
+    if np.isnan(rt60_low) or np.isnan(rt60_mid) or np.isnan(rt60_high):
+            print("RT60 values are invalid. Cannot update plots.")
+            axes.text(0.5, 0.5, "RT60 values not available.", fontsize=14, ha='center', va='center')
+            plt.draw()
+            return
+
+
     axes.clear()
 
     if current_plot_type == 'all':
@@ -108,7 +119,7 @@ def update_Plots(rt60_low, rt60_mid, rt60_high):
         RT60_Values = [rt60_low]
         axes.bar(frequency_ranges, RT60_Values, color=['blue'])
     elif current_plot_type == 'mid':
-        # Update the RT60 plot for mid frequency range
+        # Update the RT60 plot for mid-frequency range
         frequency_ranges = ['Mid (200-2000Hz)']
         RT60_Values = [rt60_mid]
         axes.bar(frequency_ranges, RT60_Values, color=['green'])
@@ -122,9 +133,10 @@ def update_Plots(rt60_low, rt60_mid, rt60_high):
     axes.set_ylabel("RT60 (Seconds)")
 
     plt.draw()  # Redraw the figure
+    plt.pause(0.001)  # Ensure the plot refreshes
 
 # Function to toggle the visibility of RT60 plots
-def toggle_plots(current_plot):
+def toggle_plots():
     global current_plot_type, rt60_low, rt60_mid, rt60_high
 
     if current_plot_type == 'all':
@@ -135,8 +147,17 @@ def toggle_plots(current_plot):
         current_plot_type = 'high'
     elif current_plot_type == 'high':
         current_plot_type = 'all'
+        
 
     update_Plots(rt60_low, rt60_mid, rt60_high)  # Update the plots with the new plot type
+
+# Function to show the combined plots
+def show_combined_plots():
+    global current_plot_type, rt60_low, rt60_mid, rt60_high
+
+    # Set plot type to 'all' and update the plots
+    current_plot_type = 'all'
+    update_Plots(rt60_low, rt60_mid, rt60_high)
 
 # Function to generate a simple report on RT60 values
 def RT60_Report(rt60_Low, rt60_Mid, rt60_High):
@@ -168,8 +189,8 @@ def load_File():
         # Process the file (convert to WAV if necessary)
         if not file_Path.endswith(".wav"):
             file_Path = convert_to_wav(file_Path)  # Assuming you implemented the conversion logic
-        rt60_Low, rt60_Mid, rt60_High = process_Audio(file_Path)
-        report = RT60_Report(rt60_Low, rt60_Mid, rt60_High)
+        rt60_low, rt60_mid, rt60_high = process_Audio(file_Path)
+        report = RT60_Report(rt60_low, rt60_mid, rt60_high)
         print(report)
 
 # Create the Load button to load an audio file
@@ -189,7 +210,7 @@ duration_label = tk.Label(root, text="Duration: 0.00 seconds", font=("Arial", 12
 duration_label.pack()
 
 #
-combined_button = tk.Button(root, text="Show Combined Plots", command=lambda: toggle_plots('all'))
+combined_button = tk.Button(root, text="Show Combined Plots", command=lambda: show_combined_plots())
 combined_button.pack()
 
 # Start the GUI main loop
