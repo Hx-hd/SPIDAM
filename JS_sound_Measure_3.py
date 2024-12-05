@@ -4,8 +4,9 @@ import matplotlib.pyplot as plt
 import tkinter as tk
 from tkinter import filedialog
 from scipy import signal
+from scipy.io import wavfile
 from pydub import AudioSegment
-import librosa.display
+import librosa.display 
 
 # A global flag to track if plots are visible
 plots_Visible = False
@@ -37,13 +38,28 @@ def convert_to_wav(file_path):
     return wav_path
 
 # Display the waveform
-def display_waveform(audio, sr):
-    plt.figure(figsize=(10, 4))
-    librosa.display.waveshow(audio, sr=sr)
-    plt.title("Waveform")
-    plt.xlabel("Time (s)")
+def display_waveform(file_path):
+    # Read the audio file using scipy.io.wavfile
+    samplerate, data = wavfile.read(file_path)
+    length = data.shape[0] / samplerate  # Calculate audio duration
+    time = np.linspace(0., length, data.shape[0])  # Create time vector
+
+    # Check if the audio is mono or stereo
+    plt.figure(figsize=(10, 6))
+    if len(data.shape) == 1:  # Mono
+        plt.plot(time, data, label="Mono")
+        plt.title("Waveform - Mono")
+    else:  # Stereo
+        plt.plot(time, data[:, 0], label="Left channel")  # Left channel
+        plt.plot(time, data[:, 1], label="Right channel")  # Right channel
+        plt.title("Waveform - Stereo")
+    
+    # Add labels and legend
+    plt.xlabel("Time [s]")
     plt.ylabel("Amplitude")
+    plt.legend()
     plt.grid(True)
+    plt.tight_layout()
     plt.show(block=False)  # Non-blocking mode
     plt.pause(0.001)
 
@@ -52,16 +68,16 @@ def process_Audio(file_path):
     global plots_Visible
 
     # Load the audio file and convert to mono if necessary
-    audio, sr = librosa.load(file_path, sr=None, mono=True)
+    audio, sr = librosa.load(file_path, sr=None, mono=False)
     if len(audio.shape) > 1:  # Check for multi-channel audio
-        audio = np.mean(audio, axis=1) # Average the channels
+        audio = np.mean(audio, axis=0) # Average the channels for RT60 calculation
 
     # Calculate and display the duration of the audio in seconds
     duration = len(audio) / sr  # Duration in seconds
     duration_label.config(text=f"Duration: {duration:.2f} seconds")
 
     # Display the waveform of the audio file
-    display_waveform(audio, sr)
+    display_waveform(file_path)
 
     # Calculate RT60 for low, mid, and high frequency ranges
     rt60_low = compute_rt60(audio, sr, low_freq=20, high_freq=200)
