@@ -1,0 +1,6 @@
+librosa==0.10.0.post2
+numpy==1.23.5
+matplotlib==3.7.1
+tkinter==0.1.0  # Tkinter comes with Python; typically no installation is needed.
+scipy==1.11.2
+pydub==0.25.1
