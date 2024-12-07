@@ -10,3 +10,4 @@ Project - Scientific Python Interactive Data Acoustic Modeling COP2080
 
 ## How To Install
 Download the .zip file and extract it to your preferred directory.
+Use pip install for the requirements to run this code
